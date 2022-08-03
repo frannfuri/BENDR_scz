@@ -40,7 +40,6 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
             for inputs, labels in dataloaders[phase]:
                 inputs = inputs.to(device)
                 labels = labels.to(device)
-                labels = labels.to(float)
 
                 # zero the parameter gradients
                 optimizer.zero_grad()
@@ -99,7 +98,7 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
                 phase, epoch_loss))#, epoch_acc))
 
             # deep copy the model
-            if phase == 'val' and epoch_loss < lowest_loss:
+            if phase == 'val' and epoch_loss/val_num_samples < lowest_loss:
                 lowest_loss = epoch_loss/val_num_samples
                 best_model_wts = copy.deepcopy(model.state_dict())
 

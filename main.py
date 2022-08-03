@@ -80,8 +80,8 @@ if __name__ == '__main__':
         # Print
         print('FOLD n°{}'.format(fold))
         print('------------------------')
-        np.savetxt('./logs_' + args.results_filename + '/train_ids_' + str(fold) + '.csv', train_ids, delimiter=',')
-        np.savetxt('./logs_' + args.results_filename + '/test_ids_' + str(fold) + '.csv', test_ids, delimiter=',')
+        np.savetxt('./logs_' + args.results_filename + '/train_ids_' + str(fold) + '_{}_lr{}bs{}_{}.csv'.format(args.dataset_directory.split('/')[-1], lr, bs, data_settings['target_feature']), train_ids, delimiter=',')
+        np.savetxt('./logs_' + args.results_filename + '/test_ids_' + str(fold) + '_{}_lr{}bs{}_{}.csv'.format(args.dataset_directory.split('/')[-1], lr, bs, data_settings['target_feature']), test_ids, delimiter=',')
         # Sample elements randomly from a given list of ids, no replacement.
         train_subsampler = torch.utils.data.SubsetRandomSampler(train_ids)
         test_subsampler = torch.utils.data.SubsetRandomSampler(test_ids)
@@ -133,10 +133,14 @@ if __name__ == '__main__':
         best_model, loss_curves, train_log, valid_log = train_model(model, criterion, optimizer, sched,
                                                                                 dataloaders, dataset_sizes, device,
                                                                                 num_epochs)
-        train_log.to_pickle("./logs_{}/train_log_f{}.pkl".format(args.results_filename, fold), protocol=4)
-        valid_log.to_pickle("./logs_{}/valid_log_f{}.pkl".format(args.results_filename, fold), protocol=4)
-        torch.save(best_model.state_dict(), './results_{}/best_model_f{}.pt'.format(args.results_filename, fold))
-        torch.save(loss_curves, './results_{}/loss_curves_f{}.pt'.format(args.results_filename, fold))
+        train_log.to_pickle("./logs_{}/train_log_f{}_{}_lr{}bs{}_{}.pkl".format(args.results_filename, fold,
+                                                                             args.dataset_directory.split('/')[-1], lr, bs, data_settings['target_feature']), protocol=4)
+        valid_log.to_pickle("./logs_{}/valid_log_f{}_{}_lr{}bs{}_{}.pkl".format(args.results_filename, fold,
+                                                                             args.dataset_directory.split('/')[-1], lr, bs, data_settings['target_feature']), protocol=4)
+        torch.save(best_model.state_dict(), './results_{}/best_model_f{}_{}_lr{}bs{}_{}.pt'.format(args.results_filename,
+                                                                                                fold, args.dataset_directory.split('/')[-1], lr, bs, data_settings['target_feature']))
+        torch.save(loss_curves, './results_{}/loss_curves_f{}_{}_lr{}bs{}_{}.pt'.format(args.results_filename, fold,
+                                                                                     args.dataset_directory.split('/')[-1], lr, bs, data_settings['target_feature']))
         #torch.save(acc_curves, './results_{}/acc_curves_f{}.pt'.format(args.results_filename, fold))
 
 

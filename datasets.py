@@ -82,7 +82,7 @@ class standardDataset(TorchDataset):
         Xi = self.X[idx]
         yi = self.y[idx]
         # TODO: Is necesary to unsqueeze Xi (in dim 0) ??
-        return Xi, yi
+        return Xi.float(), yi.float()
 
 
 class scz_BENDR_dataset(TorchDataset):
