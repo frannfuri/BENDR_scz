@@ -451,7 +451,7 @@ class BENDRClassification(nn.Module):
         self.classifier = nn.Sequential(Flatten(), classifier)
 
     def make_new_regression_layer(self, numb_of_targets=1):
-        regressor = nn.Linear(self.num_features_for_classifiation, numb_of_targets)
+        regressor = nn.Linear(self.num_features_for_classification, numb_of_targets)
         nn.init.xavier_normal_(regressor.weight)
         regressor.bias.data.zero_()
         self.regressor = nn.Sequential(Flatten(), regressor)

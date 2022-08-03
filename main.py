@@ -130,13 +130,13 @@ if __name__ == '__main__':
         sched = lr_scheduler.OneCycleLR(optimizer, lr, epochs=num_epochs, steps_per_epoch=len(dataloaders['train']),
                                         pct_start=0.3, last_epoch=-1)
 
-        best_model, acc_curves, loss_curves, train_log, valid_log = train_model(model, criterion, optimizer, sched,
+        best_model, loss_curves, train_log, valid_log = train_model(model, criterion, optimizer, sched,
                                                                                 dataloaders, dataset_sizes, device,
                                                                                 num_epochs)
         train_log.to_pickle("./logs_{}/train_log_f{}.pkl".format(args.results_filename, fold), protocol=4)
         valid_log.to_pickle("./logs_{}/valid_log_f{}.pkl".format(args.results_filename, fold), protocol=4)
         torch.save(best_model.state_dict(), './results_{}/best_model_f{}.pt'.format(args.results_filename, fold))
         torch.save(loss_curves, './results_{}/loss_curves_f{}.pt'.format(args.results_filename, fold))
-        torch.save(acc_curves, './results_{}/acc_curves_f{}.pt'.format(args.results_filename, fold))
+        #torch.save(acc_curves, './results_{}/acc_curves_f{}.pt'.format(args.results_filename, fold))
 
 

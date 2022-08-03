@@ -12,12 +12,12 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
     valid_log = list()
 
     best_model_wts = copy.deepcopy(model.state_dict())
-    best_acc = 0.0
-    # lowest_loss = 99.9
+    #best_acc = 0.0
+    lowest_loss = 99.9
 
-    train_accs = []
+    #train_accs = []
     train_losses = []
-    valid_accs = []
+    #valid_accs = []
     valid_losses = []
     for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
@@ -31,7 +31,7 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
                 model.eval()  # Set model to evaluate mode
 
             running_loss = 0.0
-            running_corrects = 0
+            #running_corrects = 0
 
             it = 0
             train_num_samples = 0
@@ -40,6 +40,7 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
             for inputs, labels in dataloaders[phase]:
                 inputs = inputs.to(device)
                 labels = labels.to(device)
+                labels = labels.to(float)
 
                 # zero the parameter gradients
                 optimizer.zero_grad()
@@ -48,8 +49,9 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
                 # track history if only in train
                 with torch.set_grad_enabled(phase == 'train'):
                     outputs = model(inputs)
-                    _, preds = torch.max(outputs[0], 1)
-                    loss = criterion(outputs[0], labels)
+                    # TODO: Classification
+                    #_, preds = torch.max(outputs[0], 1)
+                    loss = criterion(outputs[0].squeeze(), labels)
 
                     # backward + optimize only if in training phase
                     if phase == 'train':
@@ -59,9 +61,9 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
                         it += 1
                         train_metrics['loss'] = loss.item()
                         # TODO: REVISAR accuracy !!
-                        train_metrics['accuracy'] = torch.sum(preds == labels.data) / inputs.size(0)
-                        train_metrics['f1score'], train_metrics['preciss'], train_metrics['recall'] = f1_loss(labels,
-                                                                                                              preds)
+                        #train_metrics['accuracy'] = torch.sum(preds == labels.data) / inputs.size(0)
+                        #train_metrics['f1score'], train_metrics['preciss'], train_metrics['recall'] = f1_loss(labels,
+                        #                                                                                      preds)
                         train_metrics['lr'] = optimizer.param_groups[0]['lr']
                         loss.backward()
                         optimizer.step()
@@ -72,50 +74,50 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
                         valid_metrics = OrderedDict()
                         valid_metrics['epoch'] = epoch
                         valid_metrics['loss'] = loss.item()
-                        valid_metrics['accuracy'] = torch.sum(preds == labels.data) / inputs.size(0)
-                        valid_metrics['f1score'], valid_metrics['preciss'], valid_metrics['recall'] = f1_loss(labels,
-                                                                                                              preds)
+                        #valid_metrics['accuracy'] = torch.sum(preds == labels.data) / inputs.size(0)
+                        #valid_metrics['f1score'], valid_metrics['preciss'], valid_metrics['recall'] = f1_loss(labels,
+                        #                                                                                      preds)
                         valid_log.append(valid_metrics)
 
                 # statistics
                 running_loss += loss.item() * inputs.size(0)
-                running_corrects += torch.sum(preds == labels.data)
+                #running_corrects += torch.sum(preds == labels.data)
             if phase == 'train':
                 # PROBAR DE LA OTRA MANERA
                 scheduler.step()
 
             epoch_loss = running_loss  # / dataset_sizes[phase]
-            epoch_acc = running_corrects.double()  # / dataset_sizes[phase]
+            #epoch_acc = running_corrects.double()  # / dataset_sizes[phase]
             if phase == 'train':
                 train_losses.append(epoch_loss / train_num_samples)
-                train_accs.append(epoch_acc / train_num_samples)
+                #train_accs.append(epoch_acc / train_num_samples)
             else:
                 valid_losses.append(epoch_loss / val_num_samples)
-                valid_accs.append(epoch_acc / val_num_samples)
+                #valid_accs.append(epoch_acc / val_num_samples)
 
-            print('{} Loss: {:.4f} Acc: {:.4f} * numb. of samples.'.format(
-                phase, epoch_loss, epoch_acc))
+            print('{} Loss: {:.4f} * numb. of samples.'.format(
+                phase, epoch_loss))#, epoch_acc))
 
             # deep copy the model
-            # if phase == 'val' and epoch_loss/val_num_samples < lowest_loss:
-            #    lowest_loss = epoch_loss/val_num_samples
-            #    best_model_wts = copy.deepcopy(model.state_dict())
-
-            if phase == 'val' and epoch_acc / val_num_samples > best_acc:
-                best_acc = epoch_acc / val_num_samples
+            if phase == 'val' and epoch_loss < lowest_loss:
+                lowest_loss = epoch_loss/val_num_samples
                 best_model_wts = copy.deepcopy(model.state_dict())
+
+            #if phase == 'val' and epoch_acc / val_num_samples > best_acc:
+            #    best_acc = epoch_acc / val_num_samples
+            #    best_model_wts = copy.deepcopy(model.state_dict())
 
         print()
 
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}m {:.0f}s'.format(
         time_elapsed // 60, time_elapsed % 60))
-    print('Best val Acc: {:4f}'.format(best_acc))
-    # print('Lowest val Loss: {:4f}'.format(lowest_loss))
+    #print('Best val Acc: {:4f}'.format(best_acc))
+    print('Lowest val Loss: {:4f}'.format(lowest_loss))
 
     # load best model weights
     model.load_state_dict(best_model_wts)
-    return model, (train_accs, valid_accs), (train_losses, valid_losses), pd.DataFrame(train_log), pd.DataFrame(
+    return model, (train_losses, valid_losses), pd.DataFrame(train_log), pd.DataFrame(
         valid_log)
 
 
