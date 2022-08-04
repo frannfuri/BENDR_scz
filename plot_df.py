@@ -4,18 +4,22 @@ import numpy as np
 
 if __name__ == '__main__':
     f1score_available = False
+    final_file_name = 'decomp_study_SA007_lr0.0001bs16_deltaPANSS_posit'
+    metric = 'MSE  (' + r'$\Delta$ ' + 'PANSS_positive)'
+    title_caption = '[SA007]'
+    ################################3
     # Curves my implementation #2 (Dataframe)
     path = './logs_new/'
-    a0 = pd.read_pickle(path + 'train_log_f0.pkl')
-    a1 = pd.read_pickle(path + 'train_log_f1.pkl')
-    a2 = pd.read_pickle(path + 'train_log_f2.pkl')
-    a3 = pd.read_pickle(path + 'train_log_f3.pkl')
+    a0 = pd.read_pickle(path + 'train_log_f0_{}.pkl'.format(final_file_name))
+    a1 = pd.read_pickle(path + 'train_log_f1_{}.pkl'.format(final_file_name))
+    a2 = pd.read_pickle(path + 'train_log_f2_{}.pkl'.format(final_file_name))
+    a3 = pd.read_pickle(path + 'train_log_f3_{}.pkl'.format(final_file_name))
     n_epochs = len(a0['epoch'].unique())
 
-    b0 = pd.read_pickle(path + 'valid_log_f0.pkl')
-    b1 = pd.read_pickle(path + 'valid_log_f1.pkl')
-    b2 = pd.read_pickle(path + 'valid_log_f2.pkl')
-    b3 = pd.read_pickle(path + 'valid_log_f3.pkl')
+    b0 = pd.read_pickle(path + 'valid_log_f0_{}.pkl'.format(final_file_name))
+    b1 = pd.read_pickle(path + 'valid_log_f1_{}.pkl'.format(final_file_name))
+    b2 = pd.read_pickle(path + 'valid_log_f2_{}.pkl'.format(final_file_name))
+    b3 = pd.read_pickle(path + 'valid_log_f3_{}.pkl'.format(final_file_name))
 
     tr_loss_f0_ = []
     val_loss_f0_ = []
@@ -41,10 +45,10 @@ if __name__ == '__main__':
     all_train_mean_loss_ = np.mean(np.array([tr_loss_f0_, tr_loss_f1_, tr_loss_f2_, tr_loss_f3_]), axis=0)
     all_val_mean_loss_ = np.mean(np.array([val_loss_f0_, val_loss_f1_, val_loss_f2_, val_loss_f3_]), axis=0)
 
-    plt.figure()
+    plt.figure(figsize=(6,5))
     plt.plot(all_train_mean_loss_, label='Mean train', lw=2)
     plt.plot(all_val_mean_loss_, label='Mean val', lw=2)
-    plt.title('Training loss (mean of the fold-iterations)')
+    plt.title('Training loss (mean of the fold-iterations)\n{}'.format(title_caption))
     plt.grid()
     plt.plot(tr_loss_f0_, label='train f1', ls='dotted')
     plt.plot(val_loss_f0_, label='val f1', ls='dotted')
@@ -54,7 +58,9 @@ if __name__ == '__main__':
     plt.plot(val_loss_f2_, label='val f3', ls='dotted')
     plt.plot(tr_loss_f3_, label='train f4', ls='dotted')
     plt.plot(val_loss_f3_, label='val f4', ls='dotted')
-    plt.legend(loc='best')
+    plt.legend(loc='best', prop={'size': 8})
+    plt.xlabel('Epochs')
+    plt.ylabel(metric)
     # plt.ylim([0.69, 0.72])
     plt.show()
     a = 0

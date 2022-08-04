@@ -31,6 +31,7 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
                 model.eval()  # Set model to evaluate mode
 
             running_loss = 0.0
+            best_epoch = 0
             #running_corrects = 0
 
             it = 0
@@ -101,6 +102,7 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
             if phase == 'val' and epoch_loss/val_num_samples < lowest_loss:
                 lowest_loss = epoch_loss/val_num_samples
                 best_model_wts = copy.deepcopy(model.state_dict())
+                best_epoch = epoch
 
             #if phase == 'val' and epoch_acc / val_num_samples > best_acc:
             #    best_acc = epoch_acc / val_num_samples
@@ -113,11 +115,10 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
         time_elapsed // 60, time_elapsed % 60))
     #print('Best val Acc: {:4f}'.format(best_acc))
     print('Lowest val Loss: {:4f}'.format(lowest_loss))
-
     # load best model weights
     model.load_state_dict(best_model_wts)
     return model, (train_losses, valid_losses), pd.DataFrame(train_log), pd.DataFrame(
-        valid_log)
+        valid_log), best_epoch
 
 
 def _simple_accuracy(inputs, outputs):

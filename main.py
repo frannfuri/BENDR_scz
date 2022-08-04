@@ -75,6 +75,7 @@ if __name__ == '__main__':
     # Start print
     print('-------------------------------------')
 
+    best_epoch_fold = []
     # K-fold Cross Validation model evaluation
     for fold, (train_ids, test_ids) in enumerate(kfold.split(all_dataset)):
         # Print
@@ -107,6 +108,7 @@ if __name__ == '__main__':
                                         mask_p_t=0.01, mask_p_c=0.005, mask_t_span=0.1, mask_c_span=0.1,
                                         multi_gpu=False, return_features=True, regression_option=data_settings['regression_option'])
         else:
+            # TODO: Linear model to regression
             model = LinearHeadBENDR(n_targets=data_settings['num_cls'], samples_len=samples_tlen * 256, n_chn=20,
                                     encoder_h=512,
                                     projection_head=False,
@@ -130,9 +132,10 @@ if __name__ == '__main__':
         sched = lr_scheduler.OneCycleLR(optimizer, lr, epochs=num_epochs, steps_per_epoch=len(dataloaders['train']),
                                         pct_start=0.3, last_epoch=-1)
 
-        best_model, loss_curves, train_log, valid_log = train_model(model, criterion, optimizer, sched,
+        best_model, loss_curves, train_log, valid_log, best_epoch = train_model(model, criterion, optimizer, sched,
                                                                                 dataloaders, dataset_sizes, device,
                                                                                 num_epochs)
+        best_epoch_fold.append(best_epoch)
         train_log.to_pickle("./logs_{}/train_log_f{}_{}_lr{}bs{}_{}.pkl".format(args.results_filename, fold,
                                                                              args.dataset_directory.split('/')[-1], lr, bs, data_settings['target_feature']), protocol=4)
         valid_log.to_pickle("./logs_{}/valid_log_f{}_{}_lr{}bs{}_{}.pkl".format(args.results_filename, fold,
@@ -142,5 +145,5 @@ if __name__ == '__main__':
         torch.save(loss_curves, './results_{}/loss_curves_f{}_{}_lr{}bs{}_{}.pt'.format(args.results_filename, fold,
                                                                                      args.dataset_directory.split('/')[-1], lr, bs, data_settings['target_feature']))
         #torch.save(acc_curves, './results_{}/acc_curves_f{}.pt'.format(args.results_filename, fold))
-
+    print('Best epoch for each of the cross-validations iterations:\n{}'.format(best_epoch_fold))
 
