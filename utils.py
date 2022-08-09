@@ -388,3 +388,7 @@ def get_record_max_and_min(rawEeg: mne.io.eeglab.eeglab.RawEEGLAB):  # , rd=0.9)
         # pbar.set_postfix(dict(dmax=dmax, dmin=dmin, dev_max=running_dev_max, dev_min=running_dev_min))
 
     return dmax, dmin
+
+
+def modified_mae(input, target):
+    return torch.mean(target*torch.abs(input-target))

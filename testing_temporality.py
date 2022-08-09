@@ -7,7 +7,9 @@ from collections import OrderedDict
 from architectures import BENDRClassification
 from datasets import standardDataset, charge_all_data
 
-fold_nb = '2'
+random_weigths=False
+fold_nb = '0'
+results_folder = 'results_new'
 trained_name = 'decomp_study_ls1e-4bs16_deltaPANSS_posit'
 #####################################################
 # dataset parameters
@@ -22,9 +24,14 @@ overlap_len = 20
 size_output = 1
 reg_option = True
 
+different_dataset=False
+n_tests = (37 if different_dataset else None)
+n_records_other_ds = (144 if different_dataset else None)
+name_output = 'mae'
+##################################
 # Load the previously trained weights
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-model_weights = torch.load('./results_new/best_model_f{}_{}.pt'.format(fold_nb, trained_name), map_location=device)
+model_weights = torch.load('./{}/best_model_f{}_{}.pt'.format(results_folder, fold_nb, trained_name), map_location=device)
 
 
 new_model_weights = {}
@@ -50,11 +57,7 @@ for rec in array_epochs_all_subjects:
     else:
         all_X = torch.cat((all_X, rec[0]), dim=0)
         all_y = torch.cat((all_y, rec[1]), dim=0)
-all_dataset = standardDataset(all_X, all_y)
-
-# IDs of test samples for the respective cross-validation iteration
-test_ids = pd.read_csv('./logs_new/test_ids_{}_{}.csv'.format(fold_nb, trained_name), header=None).astype(int).to_numpy().squeeze()
-test_subset = all_dataset[test_ids]
+#all_dataset = standardDataset(all_X, all_y)
 
 # Load model architecture
 model = BENDRClassification(targets=size_output, samples_len=samples_length*256, n_chn=20,
@@ -69,33 +72,55 @@ model.load_state_dict(new_model_weights)
 model.eval()
 
 model = model.to(device)
-standard_test_set = standardDataset(test_subset[0], test_subset[1].to(int))
-testloader = torch.utils.data.DataLoader(standard_test_set, batch_size=64)
 criterion = torch.nn.MSELoss().to(device)
 
-running_loss = 0.0
-test_log = list()
-test_num_samples = 0
-it = 0
-test_losses = []
-for inputs, labels in testloader:
-        print('iteration nb {}'.format(it))
-        inputs = inputs.to(device)
-        labels = labels.to(device)
-        with torch.no_grad():
-            test_metrics = OrderedDict()
-            outputs = model(inputs)
-            loss = criterion(outputs[0].squeeze(), labels)
-            test_metrics['iter'] = it
-            it += 1
-            test_metrics['loss'] = loss.item()
-            test_log.append(test_metrics)
-            test_num_samples += 1*inputs.size(0)
-        running_loss += loss.item() * inputs.size(0)
-        epoch_loss = running_loss
-        test_losses.append(epoch_loss/test_num_samples)
-        print('Loss: {:.4f} * numb. of samples, or Loss: {:.4f}.'.format(
-            epoch_loss, epoch_loss/inputs.size(0)))
-print('ready')
+all_X = all_X.to(device)
+all_y = all_y.to(device)
+with torch.no_grad():
+    outputs = model(all_X)
+
+torch.save(outputs[0], './outputs_{}.pt'.format(name_output))
+
+
+##
+loss_used = 'mae'
+nb_of_windows_per_record = []
+for rec_i in range(len(array_epochs_all_subjects)):
+    nb_of_windows_per_record.append(len(array_epochs_all_subjects[rec_i][1]))
+nb_of_windows_per_subj = [144, 148, 132, 105, 137]
+
+rec_divisions = []
+count = 0
+for i in nb_of_windows_per_record:
+    count += i
+    rec_divisions.append(count)
+subj_divisions = []
+count = 0
+for i in nb_of_windows_per_subj:
+    count += i
+    subj_divisions.append(count)
+
+#outputs =
+
+plt.figure(figsize=(10, 4))
+plt.plot(all_y, '*', label='Label', alpha=0.8, markersize=3)
+plt.plot(outputs, 'o', label='Predicted', alpha=0.8, markersize=3)
+plt.title('Predicted label for the windows sorted in time\n[model trained w/all subjs.][All subjs. data][Loss: {}]'.format(loss_used))
+for i in range(len(rec_divisions)):
+    if i == (len(rec_divisions)-1):
+        plt.axvline(rec_divisions[i], color='red', linestyle='dashed', linewidth=0.5, label='Day separation')
+    else:
+        plt.axvline(rec_divisions[i], color='red', linestyle='dashed', linewidth=0.5)
+for j in range(len(subj_divisions)):
+    if j == (len(subj_divisions)-1):
+        plt.axvline(subj_divisions[j], color='black', linewidth=0.7, label='Subj. separation')
+    else:
+        plt.axvline(subj_divisions[j], color='black', linewidth=0.7)
+plt.ylabel(r'$\Delta$' + ' {}'.format(target_f[5:]))
+plt.legend()
+plt.xlabel('Sorted windows in time')
+plt.tight_layout()
+plt.xlim((0-0.8, 666+0.8))
+plt.ylim((-1, 15))
 
 a = 0

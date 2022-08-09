@@ -4,12 +4,13 @@ import numpy as np
 
 if __name__ == '__main__':
     f1score_available = False
-    final_file_name = 'decomp_study_SA007_lr0.0001bs16_deltaPANSS_posit'
-    metric = 'MSE  (' + r'$\Delta$ ' + 'PANSS_positive)'
-    title_caption = '[SA007]'
+    final_file_name = 'decomp_study_lr0.0001bs16_deltaPANSS_posit'
+    metric = 'MSE  (' + r'$\Delta$ ' + 'PANSS)'
+    title_caption = '[All. subjs.]'
+    path = './logs_new/'
     ################################3
     # Curves my implementation #2 (Dataframe)
-    path = './logs_new/'
+    #path = './logs_new_mae/'
     a0 = pd.read_pickle(path + 'train_log_f0_{}.pkl'.format(final_file_name))
     a1 = pd.read_pickle(path + 'train_log_f1_{}.pkl'.format(final_file_name))
     a2 = pd.read_pickle(path + 'train_log_f2_{}.pkl'.format(final_file_name))

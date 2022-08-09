@@ -125,16 +125,22 @@ if __name__ == '__main__':
         model = model.to(device)
         if data_settings['regression_option']:
             optimizer = torch.optim.SGD(model.parameters(), lr=lr, weight_decay=0.01)
-            criterion = torch.nn.MSELoss().to(device)
+            ##criterion = torch.nn.MSELoss().to(device)
+            criterion = torch.nn.L1Loss().to(device)
         else:
             optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=0.01)
             criterion = torch.nn.CrossEntropyLoss().to(device)
         sched = lr_scheduler.OneCycleLR(optimizer, lr, epochs=num_epochs, steps_per_epoch=len(dataloaders['train']),
                                         pct_start=0.3, last_epoch=-1)
 
-        best_model, loss_curves, train_log, valid_log, best_epoch = train_model(model, criterion, optimizer, sched,
-                                                                                dataloaders, dataset_sizes, device,
-                                                                                num_epochs)
+        if data_settings['regression_option']:
+            best_model, loss_curves, train_log, valid_log, best_epoch = train_model(model, criterion, optimizer, sched,
+                                                                                    dataloaders, dataset_sizes, device,
+                                                                                    data_settings['regression_option'], num_epochs)
+        else:
+            best_model, accs_curves, loss_curves, train_log, valid_log, best_epoch = train_model(model, criterion, optimizer, sched,
+                                                                                    dataloaders, dataset_sizes, device,
+                                                                                    data_settings['regression_option'], num_epochs)
         best_epoch_fold.append(best_epoch)
         train_log.to_pickle("./logs_{}/train_log_f{}_{}_lr{}bs{}_{}.pkl".format(args.results_filename, fold,
                                                                              args.dataset_directory.split('/')[-1], lr, bs, data_settings['target_feature']), protocol=4)
@@ -144,6 +150,8 @@ if __name__ == '__main__':
                                                                                                 fold, args.dataset_directory.split('/')[-1], lr, bs, data_settings['target_feature']))
         torch.save(loss_curves, './results_{}/loss_curves_f{}_{}_lr{}bs{}_{}.pt'.format(args.results_filename, fold,
                                                                                      args.dataset_directory.split('/')[-1], lr, bs, data_settings['target_feature']))
-        #torch.save(acc_curves, './results_{}/acc_curves_f{}.pt'.format(args.results_filename, fold))
+        if not data_settings['regression_option']:
+            torch.save(accs_curves, './results_{}/acc_curves_f{}_{}_lr{}bs{}_{}.pt'.format(args.results_filename, fold,
+                                                                                     args.dataset_directory.split('/')[-1], lr, bs, data_settings['target_feature']))
     print('Best epoch for each of the cross-validations iterations:\n{}'.format(best_epoch_fold))
 

@@ -4,21 +4,25 @@ import copy
 import sklearn.metrics as skmetrics
 import pandas as pd
 from collections import OrderedDict
+from utils import modified_mae
 
-
-def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_sizes, device, num_epochs=25):
+def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_sizes, device, reg_option, num_epochs=25):
     since = time.time()
     train_log = list()
     valid_log = list()
 
     best_model_wts = copy.deepcopy(model.state_dict())
-    #best_acc = 0.0
-    lowest_loss = 99.9
+    if not reg_option:
+        best_acc = 0.0
+        train_accs = []
+        valid_accs = []
+    else:
+        lowest_loss = 999.9
 
-    #train_accs = []
+
     train_losses = []
-    #valid_accs = []
     valid_losses = []
+    best_epoch = 0
     for epoch in range(num_epochs):
         print('Epoch {}/{}'.format(epoch, num_epochs - 1))
         print('-' * 10)
@@ -31,8 +35,8 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
                 model.eval()  # Set model to evaluate mode
 
             running_loss = 0.0
-            best_epoch = 0
-            #running_corrects = 0
+            if not reg_option:
+                running_corrects = 0
 
             it = 0
             train_num_samples = 0
@@ -49,9 +53,12 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
                 # track history if only in train
                 with torch.set_grad_enabled(phase == 'train'):
                     outputs = model(inputs)
-                    # TODO: Classification
-                    #_, preds = torch.max(outputs[0], 1)
-                    loss = criterion(outputs[0].squeeze(), labels)
+                    if reg_option:
+                        loss = criterion(outputs[0].squeeze(), labels)
+                        # loss = modified_mae(outputs[0].squeeze(), labels)
+                    else:
+                        _, preds = torch.max(outputs[0], 1)
+                        loss = criterion(outputs[0], labels)
 
                     # backward + optimize only if in training phase
                     if phase == 'train':
@@ -61,9 +68,10 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
                         it += 1
                         train_metrics['loss'] = loss.item()
                         # TODO: REVISAR accuracy !!
-                        #train_metrics['accuracy'] = torch.sum(preds == labels.data) / inputs.size(0)
-                        #train_metrics['f1score'], train_metrics['preciss'], train_metrics['recall'] = f1_loss(labels,
-                        #                                                                                      preds)
+                        if not reg_option:
+                            train_metrics['accuracy'] = torch.sum(preds == labels.data) / inputs.size(0)
+                            train_metrics['f1score'], train_metrics['preciss'], train_metrics['recall'] = f1_loss(labels,
+                                                                                                                  preds)
                         train_metrics['lr'] = optimizer.param_groups[0]['lr']
                         loss.backward()
                         optimizer.step()
@@ -74,51 +82,65 @@ def train_model(model, criterion, optimizer, scheduler, dataloaders, dataset_siz
                         valid_metrics = OrderedDict()
                         valid_metrics['epoch'] = epoch
                         valid_metrics['loss'] = loss.item()
-                        #valid_metrics['accuracy'] = torch.sum(preds == labels.data) / inputs.size(0)
-                        #valid_metrics['f1score'], valid_metrics['preciss'], valid_metrics['recall'] = f1_loss(labels,
-                        #                                                                                      preds)
+                        if not reg_option:
+                            valid_metrics['accuracy'] = torch.sum(preds == labels.data) / inputs.size(0)
+                            valid_metrics['f1score'], valid_metrics['preciss'], valid_metrics['recall'] = f1_loss(labels,
+                                                                                                                  preds)
                         valid_log.append(valid_metrics)
 
                 # statistics
                 running_loss += loss.item() * inputs.size(0)
-                #running_corrects += torch.sum(preds == labels.data)
+                if not reg_option:
+                    running_corrects += torch.sum(preds == labels.data)
             if phase == 'train':
                 # PROBAR DE LA OTRA MANERA
                 scheduler.step()
 
             epoch_loss = running_loss  # / dataset_sizes[phase]
-            #epoch_acc = running_corrects.double()  # / dataset_sizes[phase]
+            if not reg_option:
+                epoch_acc = running_corrects.double()  # / dataset_sizes[phase]
             if phase == 'train':
                 train_losses.append(epoch_loss / train_num_samples)
-                #train_accs.append(epoch_acc / train_num_samples)
+                if not reg_option:
+                    train_accs.append(epoch_acc / train_num_samples)
             else:
                 valid_losses.append(epoch_loss / val_num_samples)
-                #valid_accs.append(epoch_acc / val_num_samples)
+                if not reg_option:
+                    valid_accs.append(epoch_acc / val_num_samples)
 
             print('{} Loss: {:.4f} * numb. of samples.'.format(
                 phase, epoch_loss))#, epoch_acc))
+            if not reg_option:
+                print('Acc.: {:.4}'.format(epoch_acc))
 
             # deep copy the model
-            if phase == 'val' and epoch_loss/val_num_samples < lowest_loss:
-                lowest_loss = epoch_loss/val_num_samples
-                best_model_wts = copy.deepcopy(model.state_dict())
-                best_epoch = epoch
-
-            #if phase == 'val' and epoch_acc / val_num_samples > best_acc:
-            #    best_acc = epoch_acc / val_num_samples
-            #    best_model_wts = copy.deepcopy(model.state_dict())
+            if reg_option:
+                if phase == 'val' and epoch_loss/val_num_samples < lowest_loss:
+                    lowest_loss = epoch_loss/val_num_samples
+                    best_model_wts = copy.deepcopy(model.state_dict())
+                    best_epoch = epoch
+            else:
+                if phase == 'val' and epoch_acc / val_num_samples > best_acc:
+                    best_acc = epoch_acc / val_num_samples
+                    best_model_wts = copy.deepcopy(model.state_dict())
+                    best_epoch = epoch
 
         print()
 
     time_elapsed = time.time() - since
     print('Training complete in {:.0f}m {:.0f}s'.format(
         time_elapsed // 60, time_elapsed % 60))
-    #print('Best val Acc: {:4f}'.format(best_acc))
+    if not reg_option:
+        print('Best val Acc: {:4f}'.format(best_acc))
     print('Lowest val Loss: {:4f}'.format(lowest_loss))
     # load best model weights
     model.load_state_dict(best_model_wts)
-    return model, (train_losses, valid_losses), pd.DataFrame(train_log), pd.DataFrame(
-        valid_log), best_epoch
+    if not reg_option:
+        return model, (train_accs, valid_accs), (train_losses, valid_losses), pd.DataFrame(train_log), pd.DataFrame(
+            valid_log), best_epoch
+    else:
+        return model, (train_losses, valid_losses), pd.DataFrame(train_log), pd.DataFrame(
+            valid_log), best_epoch
 
 
 def _simple_accuracy(inputs, outputs):
